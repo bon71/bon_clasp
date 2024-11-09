@@ -21,7 +21,9 @@ function checkAndUpdateNotion() {
 
     data.results.forEach((page) => {
       const isbn13 = page.properties.ISBN.rich_text[0].plain_text;
-      if (isbn13) {
+      const gasStatus = page.properties.GAS.status.name;
+      if (isbn13 && gasStatus === "JustAdded"
+      ) {
         updateNotionPage(page.id, isbn13);
       }
     });
@@ -103,6 +105,11 @@ function updateNotionPage(pageId, isbn13) {
                 },
               },
             ],
+          },
+          GAS: {
+            status:{
+              name: "InProgress",
+            }
           },
           書影リンク: {
             rich_text: [

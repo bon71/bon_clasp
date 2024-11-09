@@ -1,5 +1,5 @@
-const NOTION_TOKEN = PropertiesService.getScriptProperties().getProperty('NOTION_TOKEN');
-const DATABASE_ID = PropertiesService.getScriptProperties().getProperty('DATABASE_ID');
+const NOTION_TOKEN = PropertiesService.getScriptProperties().getProperty("NOTION_TOKEN");
+const DATABASE_ID = PropertiesService.getScriptProperties().getProperty("DATABASE_ID");
 
 /**
  * Notion データベースに新規データが作成されたかどうかをチェックし、必要な情報を更新する関数
@@ -8,25 +8,25 @@ function checkAndUpdateNotion() {
   try {
     const url = `https://api.notion.com/v1/databases/${DATABASE_ID}/query`;
     const options = {
-      method: 'post',
+      method: "post",
       headers: {
-        'Authorization': `Bearer ${NOTION_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28'
-      }
+        Authorization: `Bearer ${NOTION_TOKEN}`,
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28",
+      },
     };
 
     const response = UrlFetchApp.fetch(url, options);
     const data = JSON.parse(response.getContentText());
 
-    data.results.forEach(page => {
-      const isbn13 = page.properties.ISBN13.rich_text[0].text.content;
+    data.results.forEach((page) => {
+      const isbn13 = page.properties.ISBN.rich_text[0].plain_text;
       if (isbn13) {
         updateNotionPage(page.id, isbn13);
       }
     });
   } catch (e) {
-    console.error('エラーが発生しました:', e.message);
+    console.error("エラーが発生しました:", e.message);
   }
 }
 
@@ -37,10 +37,9 @@ function checkAndUpdateNotion() {
  */
 function updateNotionPage(pageId, isbn13) {
   try {
-    // ISBN13のバリデーションとハイフンの除去
-    const cleanedIsbn13 = isbn13.replace(/-/g, '');
+    const cleanedIsbn13 = isbn13.replace(/-/g, "");
     if (!/^978\d{10}$/.test(cleanedIsbn13)) {
-      throw new Error('無効なISBN13コードです');
+      throw new Error("無効なISBN13コードです");
     }
 
     const imageUrl = `https://ndlsearch.ndl.go.jp/thumbnail/${cleanedIsbn13}.jpg`;
@@ -50,55 +49,72 @@ function updateNotionPage(pageId, isbn13) {
 
     const url = `https://api.notion.com/v1/pages/${pageId}`;
     const options = {
-      method: 'patch',
+      method: "patch",
       headers: {
-        'Authorization': `Bearer ${NOTION_TOKEN}`,
-        'Content-Type': 'application/json',
-        'Notion-Version': '2022-06-28'
+        Authorization: `Bearer ${NOTION_TOKEN}`,
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28",
       },
       payload: JSON.stringify({
         properties: {
-          'タイトル': {
+          正式タイトル: {
             title: [
               {
-                text: {
-                  content: bookInfo.title || 'タイトルなし'
-                }
-              }
-            ]
+                0: {
+                  text: {
+                    content: bookInfo.title || "タイトルなし",
+                  },
+                },
+              },
+            ],
           },
-          '著者': {
+          著者: {
             rich_text: [
               {
                 text: {
-                  content: bookInfo.author || '著者なし'
-                }
-              }
-            ]
+                  content: bookInfo.author || "著者なし",
+                },
+              },
+            ],
           },
-          '出版社': {
+          出版社: {
             rich_text: [
               {
                 text: {
-                  content: bookInfo.publisher || '出版社なし'
-                }
-              }
-            ]
+                  content: bookInfo.publisher || "出版社なし",
+                },
+              },
+            ],
           },
-          '出版日': {
+          出版日: {
             rich_text: [
               {
                 text: {
-                  content: bookInfo.pubdate || '出版日なし'
-                }
-              }
-            ]
+                  content: bookInfo.pubdate || "出版日なし",
+                },
+              },
+            ],
           },
-          '画像リンク': {
-            url: imageUrl
-          }
-        }
-      })
+          ISBN: {
+            rich_text: [
+              {
+                text: {
+                  content: cleanedIsbn13,
+                },
+              },
+            ],
+          },
+          書影リンク: {
+            rich_text: [
+              {
+                text: {
+                  content: imageUrl,
+                },
+              },
+            ],
+          },
+        },
+      }),
     };
 
     const response = UrlFetchApp.fetch(url, options);
